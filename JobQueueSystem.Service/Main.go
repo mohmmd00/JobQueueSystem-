@@ -11,6 +11,8 @@ func main() {
 	Manager := JobAgg.NewManager() // make new empty map by calling constructor of job manager
 
 	for {
+	mainloop:
+
 		MessageHolder.ShowOptions()
 
 		var optionInputHolder int
@@ -30,7 +32,8 @@ func main() {
 			FetchedCreatedJob, err := Manager.CreateJob(jobNameHolder, jobPriority)
 			if err != nil {
 				MessageHolder.ShowFailed("CreateJob")
-				println(err)
+				println(err.Error())
+				goto mainloop
 
 			}
 			MessageHolder.ShowSuccessful("CreateJob")
@@ -42,11 +45,12 @@ func main() {
 			fetchedJobs, err := Manager.ListJobs()
 
 			if err != nil {
-				MessageHolder.ShowFailed("ListJobs")
-				println(err)
+				println(err.Error())
+				goto mainloop
 			}
 			if len(fetchedJobs) == 0 {
 				MessageHolder.ShowFailed("FindJob") // job not found but result of that operation was successful !
+				goto mainloop
 			}
 			MessageHolder.ShowSuccessful("ListJobs")
 			MessageHolder.ShowJobDetails()
@@ -65,6 +69,8 @@ func main() {
 			job, err := Manager.FindJob(JobIdHolder)
 			if err != nil {
 				MessageHolder.ShowFailed("FindJob")
+				println(err.Error())
+				goto mainloop
 			}
 			MessageHolder.ShowSuccessful("FindJob")
 			MessageHolder.ShowJobDetails()
@@ -81,6 +87,8 @@ func main() {
 			err := Manager.CancelJob(JobIdHolder)
 			if err != nil {
 				MessageHolder.ShowFailed("CancelJob")
+				println(err.Error())
+				goto mainloop
 			}
 			MessageHolder.ShowSuccessful("CancelJob")
 
@@ -90,6 +98,8 @@ func main() {
 			err := Manager.ProcessQueue()
 			if err != nil {
 				MessageHolder.ShowFailed("ProcessQueue")
+				println(err.Error())
+				goto mainloop
 			}
 			MessageHolder.ShowSuccessful("ProcessQueue")
 
@@ -99,6 +109,8 @@ func main() {
 			StatisticHolder, err := Manager.Statistics()
 			if err != nil {
 				MessageHolder.ShowFailed("Statistics")
+				println(err.Error())
+				goto mainloop
 			}
 			MessageHolder.ShowSuccessful("Statistics")
 			fmt.Printf("%+v\n", StatisticHolder)
