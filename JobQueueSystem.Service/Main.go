@@ -2,21 +2,21 @@
 package main
 
 import (
-	Jobee "JobQueueSystem/JobQueueSystem.Service/JobAggregate"
+	JobAgg "JobQueueSystem/JobQueueSystem.Service/JobAggregate"
 	MessageHolder "JobQueueSystem/JobQueueSystem.Service/MessageAggregate"
 	"fmt"
 )
 
 func main() {
-	Manager := Jobee.NewJobManager() // make new empty map by calling constructor of job manager
+	Manager := JobAgg.NewManager() // make new empty map by calling constructor of job manager
 
 	for {
 		MessageHolder.ShowOptions()
 
-		var OptionInputHolder int
-		fmt.Scanln(&OptionInputHolder)
+		var optionInputHolder int
+		fmt.Scanln(&optionInputHolder)
 
-		switch OptionInputHolder {
+		switch optionInputHolder {
 		case 1:
 
 			MessageHolder.ShowSelected("CreateJob")
@@ -27,31 +27,31 @@ func main() {
 			fmt.Scanln(&jobNameHolder)
 			fmt.Scanln(&jobPriority)
 
-			FetchedCreatedJob, Result := Manager.CreateJob(jobNameHolder, jobPriority)
-			if !Result {
+			FetchedCreatedJob, err := Manager.CreateJob(jobNameHolder, jobPriority)
+			if err != nil {
 				MessageHolder.ShowFailed("CreateJob")
+				println(err)
 
-			} else {
-				MessageHolder.ShowSuccessful("CreateJob")
-				fmt.Println(FetchedCreatedJob.ID)
 			}
+			MessageHolder.ShowSuccessful("CreateJob")
+			fmt.Println(FetchedCreatedJob.ID)
 
 		case 2:
 
 			MessageHolder.ShowSelected("ListJobs")
-			jobAsSlice, result := Manager.ListJob()
+			fetchedJobs, err := Manager.ListJobs()
 
-			if !result {
+			if err != nil {
 				MessageHolder.ShowFailed("ListJobs")
+				println(err)
 			}
-			if len(jobAsSlice) == 0 {
+			if len(fetchedJobs) == 0 {
 				MessageHolder.ShowFailed("FindJob") // job not found but result of that operation was successful !
-			} else {
-				MessageHolder.ShowSuccessful("ListJobs")
-				MessageHolder.ShowJobDetails()
-				for _, job := range jobAsSlice {
-					fmt.Printf("%v %v %v %v %v \n", job.ID, job.Name, job.Priority, job.Status, job.CreatedAt)
-				}
+			}
+			MessageHolder.ShowSuccessful("ListJobs")
+			MessageHolder.ShowJobDetails()
+			for _, job := range fetchedJobs {
+				fmt.Printf("%v %v %v %v %v \n", job.ID, job.Name, job.Priority, job.Status, job.CreatedAt)
 			}
 
 		case 3:
@@ -62,14 +62,13 @@ func main() {
 			var JobIdHolder string
 			fmt.Scanln(&JobIdHolder)
 
-			job, Result := Manager.FindJob(JobIdHolder)
-			if !Result {
+			job, err := Manager.FindJob(JobIdHolder)
+			if err != nil {
 				MessageHolder.ShowFailed("FindJob")
-			} else {
-				MessageHolder.ShowSuccessful("FindJob")
-				MessageHolder.ShowJobDetails()
-				fmt.Printf("%v %v %v %v %v \n", job.ID, job.Name, job.Priority, job.Status, job.CreatedAt)
 			}
+			MessageHolder.ShowSuccessful("FindJob")
+			MessageHolder.ShowJobDetails()
+			fmt.Printf("%v %v %v %v %v \n", job.ID, job.Name, job.Priority, job.Status, job.CreatedAt)
 
 		case 4:
 
@@ -79,33 +78,31 @@ func main() {
 			var JobIdHolder string
 			fmt.Scanln(&JobIdHolder)
 
-			Result := Manager.CancelJob(JobIdHolder)
-			if !Result {
+			err := Manager.CancelJob(JobIdHolder)
+			if err != nil {
 				MessageHolder.ShowFailed("CancelJob")
-			} else {
-				MessageHolder.ShowSuccessful("CancelJob")
 			}
+			MessageHolder.ShowSuccessful("CancelJob")
 
 		case 5:
 
 			MessageHolder.ShowSelected("ProcessQueue")
-			Result := Manager.ProcessQueue()
-			if !Result {
+			err := Manager.ProcessQueue()
+			if err != nil {
 				MessageHolder.ShowFailed("ProcessQueue")
-			} else {
-				MessageHolder.ShowSuccessful("ProcessQueue")
 			}
+			MessageHolder.ShowSuccessful("ProcessQueue")
 
 		case 6:
 			MessageHolder.ShowSelected("Statistics")
 
-			StatisticHolder, Result := Manager.Statistics()
-			if !Result {
+			StatisticHolder, err := Manager.Statistics()
+			if err != nil {
 				MessageHolder.ShowFailed("Statistics")
-			} else {
-				MessageHolder.ShowSuccessful("Statistics")
-				println(StatisticHolder)
 			}
+			MessageHolder.ShowSuccessful("Statistics")
+			fmt.Printf("%+v\n", StatisticHolder)
+
 		case 7:
 			MessageHolder.ShowSelected("Exit")
 			MessageHolder.ShowSuccessful("Exit")

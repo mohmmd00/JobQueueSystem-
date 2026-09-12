@@ -2,95 +2,102 @@
 package jobaggregate
 
 import (
+	"errors"
 	"sort"
-
 	"github.com/google/uuid"
 )
 
-type JobManager struct {
-	Jobs map[uuid.UUID]*Job //jobs is a map where each UUID points! to a Job.
+type Manager struct {
+	jobs map[uuid.UUID]*Job //jobs is a map where each UUID points! to a Job.
 }
 
-func NewJobManager() JobManager { //constructor
-	return JobManager{Jobs: make(map[uuid.UUID]*Job)}
+func NewManager() Manager { //constructor
+	return Manager{jobs: make(map[uuid.UUID]*Job)}
 }
 
-func (m *JobManager) CreateJob(name string, priority int) (createdJob Job , isSuccessful bool) {
+func (m *Manager) CreateJob(name string, priority int) (*Job, error) {
 
-	JobCreated := NewJob(name, priority)
-	m.Jobs[JobCreated.ID] = &JobCreated
+	job := NewJob(name, priority)
+	m.jobs[job.ID] = &job //gives the map the memory address of that new job to keep
 
-	return JobCreated, true
+	return &job, nil
 
 }
-func (m *JobManager) ListJob() (jobs []*Job, isSuccessful bool) {
+func (m *Manager) ListJobs() ([]*Job, error) {
 
-	var fetchedJobsAsSlice []*Job
-	for _ , job := range m.Jobs{
-		fetchedJobsAsSlice = append(fetchedJobsAsSlice, job)
+	if len(m.jobs) == 0 {
+		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
 	}
-	return fetchedJobsAsSlice, true
-}
-func (m *JobManager) FindJob(id string) (job *Job, isSuccessful bool) {
 
-	parsedUuid, err := uuid.Parse(id)
+	var jobsHolder []*Job
+	for _, job := range m.jobs {
+		jobsHolder = append(jobsHolder, job)
+	}
+	return jobsHolder, nil
+}
+func (m *Manager) FindJob(id string) (*Job, error) {
+
+	parsedUUID, err := uuid.Parse(id)
 
 	if err != nil {
-		return nil, false
-	} else {
-		FoundJob, IsExists := m.Jobs[parsedUuid]
-		if !IsExists {
-			return nil, false
-		}
-		return FoundJob, true
+		return nil, err
 	}
+	foundJob, ok := m.jobs[parsedUUID]
+	if !ok {
+		return nil, errors.New("Job finding failed. couldnt find job")
+	}
+	return foundJob, nil
 
 }
-func (m *JobManager) CancelJob(id string) (isSuccessful bool) {
+func (m *Manager) CancelJob(id string) error {
 
-	parsedUuid, err := uuid.Parse(id)
+	parsedUUID, err := uuid.Parse(id)
 	if err != nil {
-		return false
+		return err
 	}
-	FoundJob, IsExists := m.Jobs[parsedUuid]
-	if !IsExists {
-		return false
+	foundJob, ok := m.jobs[parsedUUID]
+	if !ok {
+		return errors.New("Job canceling failed. couldnt find job.")
 	}
-	if FoundJob.Status != Pending {
-		return false
+	if foundJob.Status != Pending {
+		return errors.New("Founded job is not on pending.")
 	}
-	FoundJob.Status = Cancelled
-	return true
+	foundJob.Status = Cancelled // job status changed to cancel
+	return nil
 
 }
-func (m *JobManager) getPendingJobsSortedByPriority() (pendingJobsAsSlice []*Job, isSuccessful bool) {
+func (m *Manager) pendingJobs() ([]*Job, error) {
 
-	var pendingJobs []*Job
+	if len(m.jobs) == 0 {
+		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
+	}
 
-	for _, job := range m.Jobs {
+	var jobsHolder []*Job
+
+	for _, job := range m.jobs { // for each job in map(jobs)
 		if job.Status == Pending {
-			pendingJobs = append(pendingJobs, job)
+			jobsHolder = append(jobsHolder, job) //pick up the jobs on pending into holder
 
 		}
 	}
-	sort.Slice(pendingJobs, func(i, j int) bool {
-		return pendingJobs[i].Priority > pendingJobs[j].Priority
+	if len(jobsHolder) == 0 {
+		return nil, errors.New("Couldnt find any Pending Jobs.")
+	}
+
+	sort.Slice(jobsHolder, func(i, j int) bool {
+		return jobsHolder[i].Priority > jobsHolder[j].Priority
 	})
 
-	if len(pendingJobs) == 0 {
-		return nil, false
-	}
-
-	return pendingJobs, true
+	return jobsHolder, nil
 
 }
-func (m *JobManager) ProcessQueue() (isSuccessful bool) {
+func (m *Manager) ProcessQueue() error {
 
-	pendingJobs, isSuccessful := m.getPendingJobsSortedByPriority()
-	if !isSuccessful {
-		return false
+	jobs, err := m.pendingJobs()
+	if err != nil {
+		return err
 	}
-	for _, job := range pendingJobs {
+	for _, job := range jobs {
 
 		job.Status = Running
 
@@ -99,17 +106,17 @@ func (m *JobManager) ProcessQueue() (isSuccessful bool) {
 		job.Status = Completed
 
 	}
-	return true
+	return nil
 }
-func (m *JobManager) Statistics() (statistic JobStatistics, isSuccessful bool) {
+func (m *Manager) Statistics() (*JobStatistics, error) {
 
 	var statistics JobStatistics
 
-	if len(m.Jobs) == 0 {
-		return JobStatistics{}, false
+	if len(m.jobs) == 0 {
+		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
 	}
 
-	for _, job := range m.Jobs {
+	for _, job := range m.jobs {
 		statistics.Total++
 
 		switch job.Status {
@@ -126,5 +133,5 @@ func (m *JobManager) Statistics() (statistic JobStatistics, isSuccessful bool) {
 		}
 	}
 
-	return statistics, true
+	return &statistics, nil
 }
