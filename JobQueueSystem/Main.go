@@ -2,8 +2,8 @@
 package main
 
 import (
-	JobAgg "JobQueueSystem/JobQueueSystem.Service/JobAggregate"
-	MessageHolder "JobQueueSystem/JobQueueSystem.Service/MessageAggregate"
+	JobAgg "JobQueueSystem/JobQueueSystem/JobAggregate"
+	MessageHolder "JobQueueSystem/JobQueueSystem/MessageAggregate"
 	"fmt"
 )
 
@@ -93,14 +93,15 @@ func main() {
 			MessageHolder.ShowSuccessful("CancelJob")
 
 		case 5:
-
-			MessageHolder.ShowSelected("ProcessQueue")
-			err := Manager.ProcessQueue()
-			if err != nil {
-				MessageHolder.ShowFailed("ProcessQueue")
-				println(err.Error())
-				goto mainloop
-			}
+			/*
+				MessageHolder.ShowSelected("ProcessQueue")
+				err := Manager.ProcessQueue()
+				if err != nil {
+					MessageHolder.ShowFailed("ProcessQueue")
+					println(err.Error())
+					goto mainloop
+				}
+			*/
 			MessageHolder.ShowSuccessful("ProcessQueue")
 
 		case 6:
