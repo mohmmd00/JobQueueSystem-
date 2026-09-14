@@ -4,6 +4,8 @@ package jobaggregate
 import (
 	"errors"
 	"sort"
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -91,6 +93,14 @@ func (m *Manager) pendingJobs() ([]*Job, error) {
 	return jobsHolder, nil
 
 }
+func (m *Manager) processJob(job *Job) {
+
+	job.Status = Running
+
+	time.Sleep(2 * time.Second)
+
+	job.Status = Completed
+}
 func (m *Manager) ProcessQueue() error {
 
 	jobs, err := m.pendingJobs()
@@ -98,13 +108,7 @@ func (m *Manager) ProcessQueue() error {
 		return err
 	}
 	for _, job := range jobs {
-
-		job.Status = Running
-
-		// some bullshit we dont care
-
-		job.Status = Completed
-
+		go m.processJob(job)
 	}
 	return nil
 }
