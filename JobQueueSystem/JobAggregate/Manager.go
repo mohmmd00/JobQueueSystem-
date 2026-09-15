@@ -4,27 +4,35 @@ package jobaggregate
 import (
 	"errors"
 	"sort"
+	"sync"
 
 	"github.com/google/uuid"
 )
 
 type Manager struct {
 	jobs map[uuid.UUID]*Job //jobs is a map where each UUID points! to a Job.
+	mu   sync.Mutex
 }
 
-func NewManager() Manager { //constructor
-	return Manager{jobs: make(map[uuid.UUID]*Job)}
+func NewManager() *Manager { //constructor
+	return &Manager{jobs: make(map[uuid.UUID]*Job)}
+
 }
 
-func (m *Manager) CreateJob(name string, priority int) (*Job, error) {
+func (m *Manager) CreateJob(name string, priority int) *Job {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	job := NewJob(name, priority)
 	m.jobs[job.ID] = &job //gives the map the memory address of that new job to keep
 
-	return &job, nil
+	return &job
 
 }
 func (m *Manager) ListJobs() ([]*Job, error) {
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if len(m.jobs) == 0 {
 		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
@@ -43,6 +51,9 @@ func (m *Manager) FindJob(id string) (*Job, error) {
 	if err != nil {
 		return nil, err
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	foundJob, ok := m.jobs[parsedUUID]
 	if !ok {
 		return nil, errors.New("Job finding failed. couldnt find job")
@@ -56,6 +67,9 @@ func (m *Manager) CancelJob(id string) error {
 	if err != nil {
 		return err
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	foundJob, ok := m.jobs[parsedUUID]
 	if !ok {
 		return errors.New("Job canceling failed. couldnt find job.")
@@ -67,17 +81,19 @@ func (m *Manager) CancelJob(id string) error {
 	return nil
 
 }
-func (m *Manager) pendingJobs() ([]*Job, error) {
+func (m *Manager) PendingJobs() ([]Job, error) {
+
+	var jobsHolder []Job
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if len(m.jobs) == 0 {
 		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
 	}
 
-	var jobsHolder []*Job
-
 	for _, job := range m.jobs { // for each job in map(jobs)
 		if job.Status == Pending {
-			jobsHolder = append(jobsHolder, job) //pick up the jobs on pending into holder
+			jobsHolder = append(jobsHolder, *job) //pick up the jobs on pending into holder
 
 		}
 	}
@@ -93,30 +109,11 @@ func (m *Manager) pendingJobs() ([]*Job, error) {
 
 }
 
-/*
-func (m *Manager) processJob(job *Job) {
-
-		job.Status = Running
-
-		time.Sleep(2 * time.Second)
-
-		job.Status = Completed
-	}
-*/
-/*func (m *Manager) ProcessQueue() error {
-
-	jobs, err := m.pendingJobs()
-	if err != nil {
-		return err
-	}
-	for _, job := range jobs {
-	}
-	return nil
-}
-*/
 func (m *Manager) Statistics() (*JobStatistics, error) {
 
 	var statistics JobStatistics
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	if len(m.jobs) == 0 {
 		return nil, errors.New("Couldnt find any Jobs. The map is empty.")
@@ -140,4 +137,24 @@ func (m *Manager) Statistics() (*JobStatistics, error) {
 	}
 
 	return &statistics, nil
+}
+
+func (m *Manager) UpdateJobStatus(id string, status JobStatus) error {
+
+	parsedUUID, err := uuid.Parse(id)
+	if err != nil {
+		return err
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	foundJob, ok := m.jobs[parsedUUID]
+	if !ok {
+		return errors.New("Job status updating failed. couldnt find job.")
+	}
+
+	foundJob.Status = status
+
+	return nil
+
 }
